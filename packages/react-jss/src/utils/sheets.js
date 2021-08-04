@@ -120,16 +120,25 @@ export const addDynamicRules = (sheet: StyleSheet, data: any): DynamicRules | vo
   // Loop over each dynamic rule and add it to the stylesheet
   for (const key in meta.dynamicStyles) {
     const initialRuleCount = sheet.rules.index.length
-    const originalRule = sheet.addRule(key, meta.dynamicStyles[key])
-
-    // Loop through all created rules, fixes updating dynamic rules
-    for (let i = initialRuleCount; i < sheet.rules.index.length; i++) {
-      const rule = sheet.rules.index[i]
-      sheet.updateOne(rule, data)
-
-      // If it's the original rule, we need to add it by the correct key so the hook and hoc
-      // can correctly concat the dynamic class with the static one
-      rules[originalRule === rule ? key : rule.key] = rule
+    if (key.includes('keyframes')) {
+      const idKey = key
+        .replace('@keyframes', 'keyframes')
+        .split(' ')
+        .join('-')
+      const originalKeyframeRule = sheet.rules.index.find(rule => rule.key === idKey)
+      if (originalKeyframeRule) {
+        sheet.updateOne(originalKeyframeRule, data)
+      }
+    } else {
+      const originalRule = sheet.addRule(key, meta.dynamicStyles[key])
+      // Loop through all created rules, fixes updating dynamic rules
+      for (let i = initialRuleCount; i < sheet.rules.index.length; i++) {
+        const rule = sheet.rules.index[i]
+        sheet.updateOne(rule, data)
+        // If it's the original rule, we need to add it by the correct key so the hook and hoc
+        // can correctly concat the dynamic class with the static one
+        rules[originalRule === rule ? key : rule.key] = rule
+      }
     }
   }
 
